@@ -2,6 +2,8 @@ module github.com/sagernet/sing-box
 
 go 1.24.7
 
+replace github.com/sagernet/wireguard-go => github.com/throneproj/wireguard-go v0.0.0-20251117142642-c1bcbc4da297
+
 require (
 	github.com/anthropics/anthropic-sdk-go v1.14.0
 	github.com/anytls/sing-anytls v0.0.11
@@ -115,6 +117,7 @@ require (
 	github.com/tailscale/peercred v0.0.0-20250107143737-35a0c7bd7edc // indirect
 	github.com/tailscale/web-client-prebuilt v0.0.0-20250124233751-d4cd19a26976 // indirect
 	github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da // indirect
+	github.com/tevino/abool/v2 v2.1.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

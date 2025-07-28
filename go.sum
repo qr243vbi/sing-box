@@ -183,8 +183,6 @@ github.com/sagernet/smux v1.5.34-mod.2 h1:gkmBjIjlJ2zQKpLigOkFur5kBKdV6bNRoFu2Wk
 github.com/sagernet/smux v1.5.34-mod.2/go.mod h1:0KW0+R+ycvA2INW4gbsd7BNyg+HEfLIAxa5N02/28Zc=
 github.com/sagernet/tailscale v1.86.5-sing-box-1.13-mod.4 h1:Ceg+9Ug+qAFgEchGodlHmMOY2h7KktQQDAyuoIsPbos=
 github.com/sagernet/tailscale v1.86.5-sing-box-1.13-mod.4/go.mod h1:YdN/avjce8sqPFLT9E1uEh8gPewNSnC41U4ZhBJ+ACw=
-github.com/sagernet/wireguard-go v0.0.2-beta.1.0.20250917110311-16510ac47288 h1:E2tZFeg9mGYGQ7E7BbxMv1cU35HxwgRm6tPKI2Pp7DA=
-github.com/sagernet/wireguard-go v0.0.2-beta.1.0.20250917110311-16510ac47288/go.mod h1:WUxgxUDZoCF2sxVmW+STSxatP02Qn3FcafTiI2BLtE0=
 github.com/sagernet/ws v0.0.0-20231204124109-acfe8907c854 h1:6uUiZcDRnZSAegryaUGwPC/Fj13JSHwiTftrXhMmYOc=
 github.com/sagernet/ws v0.0.0-20231204124109-acfe8907c854/go.mod h1:LtfoSK3+NG57tvnVEHgcuBW9ujgE8enPSgzgwStwCAA=
 github.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=
@@ -220,6 +218,10 @@ github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da h1:jVRUZPRs
 github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da/go.mod h1:BOm5fXUBFM+m9woLNBoxI9TaBXXhGNP50LX/TGIvGb4=
 github.com/tc-hib/winres v0.2.1 h1:YDE0FiP0VmtRaDn7+aaChp1KiF4owBiJa5l964l5ujA=
 github.com/tc-hib/winres v0.2.1/go.mod h1:C/JaNhH3KBvhNKVbvdlDWkbMDO9H4fKKDaN7/07SSuk=
+github.com/tevino/abool/v2 v2.1.0 h1:7w+Vf9f/5gmKT4m4qkayb33/92M+Um45F2BkHOR+L/c=
+github.com/tevino/abool/v2 v2.1.0/go.mod h1:+Lmlqk6bHDWHqN1cbxqhwEAwMPXgc8I1SDEamtseuXY=
+github.com/throneproj/wireguard-go v0.0.0-20251117142642-c1bcbc4da297 h1:KuHnfkjQf/yoO+4pn7+8GPPPyMgNqrYypC0klH3b7yU=
+github.com/throneproj/wireguard-go v0.0.0-20251117142642-c1bcbc4da297/go.mod h1:CJNH76HseWtPRDDtgch35hAa3WF/dM97ULXuHV0bxH8=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
