@@ -173,6 +173,9 @@ require (
 	gvisor.dev/gvisor v0.0.0-20231202080848-1f7806d17489 // indirect
 )
 
-replace github.com/sagernet/sing-vmess => github.com/starifly/sing-vmess v0.2.8-mod.1
-
 replace github.com/sagernet/sing-tun => github.com/qr243vbi/sing-tun v0.9.0-mod1
+
+replace github.com/sagernet/sing-vmess => github.com/qr243vbi/sing-vmess v0.2.8-mod1
+
+replace github.com/sagernet/gvisor => github.com/nintendobox/gvisor v0.0.3-fix
+
