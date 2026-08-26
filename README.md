@@ -61,7 +61,8 @@ You can also use `server_ports` to set a list of port ranges.
                     "password": "manlianpenfen"
                 }
             ],
-            "traffic_pattern": "GgQIARAK"
+            "traffic_pattern": "GgQIARAK",
+            "user_hint_is_mandatory": false
         }
     ],
     "outbounds": [],

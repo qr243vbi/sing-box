@@ -65,8 +65,10 @@ func InboundRegistry() *inbound.Registry {
 	shadowtls.RegisterInbound(registry)
 	vless.RegisterInbound(registry)
 	anytls.RegisterInbound(registry)
+
 	snellprotocol.RegisterInbound(registry)
 	trusttunnel.RegistryInbound(registry)
+
 	mieru.RegisterInbound(registry)
 
 	registerQUICInbounds(registry)
@@ -97,7 +99,6 @@ func OutboundRegistry() *outbound.Registry {
 	vless.RegisterOutbound(registry)
 	anytls.RegisterOutbound(registry)
 	snellprotocol.RegisterOutbound(registry)
-
 	trusttunnel.RegisterOutbound(registry)
 	mieru.RegisterOutbound(registry)
 

@@ -43,3 +43,7 @@ A list of mieru user name and password.
 #### traffic_pattern
 
 A base64 string to fine tune network behavior.
+
+#### user_hint_is_mandatory
+
+If proxy client doesn't sent user hint, proxy server will refuse the connection.
