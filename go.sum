@@ -50,8 +50,8 @@ github.com/dyhkwong/sing-juicity v0.1.1 h1:8g3ylt+vHNTvoTePefXzvjtaCbSWKGvTmJmnr
 github.com/dyhkwong/sing-juicity v0.1.1/go.mod h1:EZdZmG8yVt+nhDJii0RbUGB8pV77SoavDoBQ7uMBFCI=
 github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/ISU=
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
-github.com/enfein/mieru/v3 v3.30.0 h1:g7v0TuK7y0ZMn6TOdjOs8WEUQk8bvs6WYPBJ16SKdBU=
-github.com/enfein/mieru/v3 v3.30.0/go.mod h1:zJBUCsi5rxyvHM8fjFf+GLaEl4OEjjBXr1s5F6Qd3hM=
+github.com/enfein/mieru/v3 v3.36.0 h1:kTXfBSV6Dajk09yBYMeI1r4WAuAtMCKqZ42X5BrQZV8=
+github.com/enfein/mieru/v3 v3.36.0/go.mod h1:zJBUCsi5rxyvHM8fjFf+GLaEl4OEjjBXr1s5F6Qd3hM=
 github.com/florianl/go-nfqueue/v2 v2.0.2 h1:FL5lQTeetgpCvac1TRwSfgaXUn0YSO7WzGvWNIp3JPE=
 github.com/florianl/go-nfqueue/v2 v2.0.2/go.mod h1:VA09+iPOT43OMoCKNfXHyzujQUty2xmzyCRkBOlmabc=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
@@ -144,8 +144,6 @@ github.com/mitchellh/go-ps v1.0.0 h1:i6ampVEEF4wQFF+bkYfwYgY+F/uYJDktmvLPf7qIgjc
 github.com/mitchellh/go-ps v1.0.0/go.mod h1:J4lOc8z8yJs6vUwklHw2XEIiT4z4C40KtWVN3nvg8Pg=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
-github.com/nintendobox/gvisor v0.0.2-fix h1:u0AuInFZNjIfo0j75Z5tk4/LWZYEPF+pFD2F5TBo91s=
-github.com/nintendobox/gvisor v0.0.2-fix/go.mod h1:NJKBtm9nVEK3iyOYWsUlrDQuoGh4zJ4KOPhSYVidvQ4=
 github.com/openai/openai-go/v3 v3.26.0 h1:bRt6H/ozMNt/dDkN4gobnLqaEGrRGBzmbVs0xxJEnQE=
 github.com/openai/openai-go/v3 v3.26.0/go.mod h1:cdufnVK14cWcT9qA1rRtrXx4FTRsgbDPW7Ia7SS5cZo=
 github.com/oschwald/maxminddb-golang v1.13.1 h1:G3wwjdN9JmIK2o/ermkHM+98oX5fS+k5MbwsmL4MRQE=
@@ -159,8 +157,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus-community/pro-bing v0.4.0 h1:YMbv+i08gQz97OZZBwLyvmmQEEzyfyrrjEaAchdy3R4=
 github.com/prometheus-community/pro-bing v0.4.0/go.mod h1:b7wRYZtCcPmt4Sz319BykUU241rWLe1VFXyiyWK/dH4=
-github.com/qr243vbi/sing-tun v0.8.11-mod3 h1:HahU0fbzmigoH5G+HAKLu+YtsKxoRFXYhlaadx+4VEQ=
-github.com/qr243vbi/sing-tun v0.8.11-mod3/go.mod h1:QvarqUtHfj1ULaRR+6kZOS/OoCE+pYGq67A5tyIy+dQ=
+github.com/qr243vbi/sing-tun v0.9.0-mod1 h1:wVxzgvp/h148117w8r6wzMX40HWnHb8Vwxb4kCVQg6Q=
+github.com/qr243vbi/sing-tun v0.9.0-mod1/go.mod h1:QvarqUtHfj1ULaRR+6kZOS/OoCE+pYGq67A5tyIy+dQ=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/reF1nd/sing-snell v0.0.6 h1:76Y5zdXshNcKxcYoNxgxOpeYD01xLyBoi6k2dRyWSLU=
@@ -240,6 +238,8 @@ github.com/sagernet/fswatch v0.1.2 h1:/TT7k4mkce1qFPxamLO842WjqBgbTBiXP2mlUjp9PF
 github.com/sagernet/fswatch v0.1.2/go.mod h1:5BpGmpUQVd3Mc5r313HRpvADHRg3/rKn5QbwFteB880=
 github.com/sagernet/gomobile v0.1.12 h1:XwzjZaclFF96deLqwAgK8gU3w0M2A8qxgDmhV+A0wjg=
 github.com/sagernet/gomobile v0.1.12/go.mod h1:A8l3FlHi2D/+mfcd4HHvk5DGFPW/ShFb9jHP5VmSiDY=
+github.com/sagernet/gvisor v0.0.0-20250811-sing-box-mod.1 h1:bYLFFxOBLbmeMjMSCzsXJwNAS1EHoBb+G9GlE5oBgM8=
+github.com/sagernet/gvisor v0.0.0-20250811-sing-box-mod.1/go.mod h1:NJKBtm9nVEK3iyOYWsUlrDQuoGh4zJ4KOPhSYVidvQ4=
 github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a h1:ObwtHN2VpqE0ZNjr6sGeT00J8uU7JF4cNUdb44/Duis=
 github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a/go.mod h1:xLnfdiJbSp8rNqYEdIW/6eDO4mVoogml14Bh2hSiFpM=
 github.com/sagernet/nftables v0.3.0-mod.2 h1:ck2KMU02OxL1eDFgGaWYglMDpoOZ7OHzxje+vW5Q0OQ=

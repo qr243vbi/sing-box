@@ -43,3 +43,7 @@ icon: material/new-box
 #### traffic_pattern
 
 一个 base64 字符串用于微调网络行为。
+
+#### user_hint_is_mandatory
+
+客户端若不发送用户提示，代理服务器将拒绝连接。
