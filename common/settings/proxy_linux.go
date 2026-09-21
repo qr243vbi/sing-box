@@ -6,7 +6,6 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -33,7 +32,8 @@ func NewSystemProxy(ctx context.Context, serverAddr M.Socksaddr, supportSOCKS bo
 		if os.Getuid() != 0 {
 			return shell.Exec(name, args...).Attach().Run()
 		} else if sudoUser != "" {
-			return shell.Exec("su", "-", sudoUser, "-c", F.ToString(name, " ", strings.Join(args, " "))).Attach().Run()
+			progargs := append([]string{"-p", "-u", sudoUser, "--", name}, args...)
+			return shell.Exec("runuser", progargs...).Attach().Run()
 		} else {
 			return E.New("set system proxy: unable to set as root")
 		}

@@ -59,6 +59,7 @@ The server address.
 
 The server port.
 
+<<<<<<< HEAD
 #### version
 
 ==Required==
