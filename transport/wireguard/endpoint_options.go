@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"context"
+	"github.com/sagernet/sing-box/option"
 	"net/netip"
 	"time"
 

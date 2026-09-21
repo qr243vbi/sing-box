@@ -27,6 +27,7 @@ An endpoint is a protocol with inbound and outbound behavior.
 | `openvpn-client` | [OpenVPN Client](./openvpn-client/)     |
 | `openvpn-server` | [OpenVPN Server](./openvpn-server/)     |
 
+
 #### tag
 
 The tag of the endpoint.
