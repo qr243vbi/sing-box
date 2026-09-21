@@ -105,9 +105,8 @@ func NewRuleAction(ctx context.Context, logger logger.ContextLogger, action opti
 		return &RuleActionHijackDNS{}, nil
 	case C.RuleActionTypeSniff:
 		sniffAction := &RuleActionSniff{
-			SnifferNames:        action.SniffOptions.Sniffer,
-			Timeout:             time.Duration(action.SniffOptions.Timeout),
-			OverrideDestination: action.SniffOptions.OverrideDestination,
+			SnifferNames: action.SniffOptions.Sniffer,
+			Timeout:      time.Duration(action.SniffOptions.Timeout),
 		}
 		return sniffAction, sniffAction.build()
 	case C.RuleActionTypeResolve:
