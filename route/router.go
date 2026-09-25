@@ -33,8 +33,10 @@ type Router struct {
 	dnsTransport      adapter.DNSTransportManager
 	connection        adapter.ConnectionManager
 	network           adapter.NetworkManager
+	defaultOutbound   adapter.Outbound
 	httpClientManager adapter.HTTPClientManager
 	rules             []adapter.Rule
+	final             string
 	needFindProcess   bool
 	needFindNeighbor  bool
 	leaseFiles        []string
@@ -47,13 +49,13 @@ type Router struct {
 	pauseManager      pause.Manager
 	trackers          []adapter.ConnectionTracker
 	platformInterface adapter.PlatformInterface
-	started           bool
+	started           chan struct{}
 }
 
-func NewRouter(ctx context.Context, logFactory log.Factory, options option.RouteOptions, dnsOptions option.DNSOptions) *Router {
+func NewRouter(ctx context.Context, logFactory log.Factory, name string, options option.RouteOptions, dnsOptions option.DNSOptions) *Router {
 	return &Router{
 		ctx:               ctx,
-		logger:            logFactory.NewLogger("router"),
+		logger:            logFactory.NewLogger(name),
 		inbound:           service.FromContext[adapter.InboundManager](ctx),
 		outbound:          service.FromContext[adapter.OutboundManager](ctx),
 		dns:               service.FromContext[adapter.DNSRouter](ctx),
@@ -62,12 +64,14 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		network:           service.FromContext[adapter.NetworkManager](ctx),
 		httpClientManager: service.FromContext[adapter.HTTPClientManager](ctx),
 		rules:             make([]adapter.Rule, 0, len(options.Rules)),
+		final:             options.Final,
 		ruleSetMap:        make(map[string]adapter.RuleSet),
 		needFindProcess:   hasRule(options.Rules, isProcessRule) || hasDNSRule(dnsOptions.Rules, isProcessDNSRule) || options.FindProcess,
 		needFindNeighbor:  hasRule(options.Rules, isNeighborRule) || hasDNSRule(dnsOptions.Rules, isNeighborDNSRule) || hasLocalNeighborDNSServer(dnsOptions.Servers) || options.FindNeighbor,
 		leaseFiles:        options.DHCPLeaseFiles,
 		pauseManager:      service.FromContext[pause.Manager](ctx),
 		platformInterface: service.FromContext[adapter.PlatformInterface](ctx),
+		started:           make(chan struct{}),
 	}
 }
 
@@ -208,7 +212,16 @@ func (r *Router) Start(stage adapter.StartStage) error {
 		if r.ruleSetUpdater != nil {
 			r.ruleSetUpdater.Start()
 		}
-		r.started = true
+		if r.final != "" {
+			defaultOutbound, loaded := r.outbound.Outbound(r.final)
+			if !loaded {
+				return E.New("outbound not found: ", r.final)
+			}
+			r.defaultOutbound = defaultOutbound
+		} else {
+			r.defaultOutbound = r.outbound.Default()
+		}
+		close(r.started)
 		return nil
 	case adapter.StartStateStarted:
 		for _, ruleSet := range r.ruleSets {

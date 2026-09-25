@@ -13,7 +13,7 @@ import (
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/log"
 	R "github.com/sagernet/sing-box/route/rule"
-	"github.com/sagernet/sing-mux"
+	mux "github.com/sagernet/sing-mux"
 	"github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing-vmess"
 	"github.com/sagernet/sing/common"
@@ -68,6 +68,13 @@ func (r *Router) RouteConnectionEx(ctx context.Context, conn net.Conn, metadata 
 }
 
 func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata adapter.InboundContext, onClose N.CloseHandlerFunc) error {
+	select {
+	case <-r.started:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.ctx.Done():
+		return r.ctx.Err()
+	}
 	//nolint:staticcheck
 	if metadata.InboundDetour != "" {
 		if metadata.LastInbound == metadata.InboundDetour {
@@ -152,12 +159,11 @@ func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata ad
 		}
 	}
 	if selectedRule == nil {
-		defaultOutbound := r.outbound.Default()
-		if !common.Contains(defaultOutbound.Network(), N.NetworkTCP) {
+		if !common.Contains(r.defaultOutbound.Network(), N.NetworkTCP) {
 			buf.ReleaseMulti(buffers)
-			return E.New("TCP is not supported by default outbound: ", defaultOutbound.Tag())
+			return E.New("TCP is not supported by default outbound: ", r.defaultOutbound.Tag())
 		}
-		selectedOutbound = defaultOutbound
+		selectedOutbound = r.defaultOutbound
 	}
 
 	for _, buffer := range buffers {
@@ -211,6 +217,13 @@ func (r *Router) RoutePacketConnectionEx(ctx context.Context, conn N.PacketConn,
 }
 
 func (r *Router) routePacketConnection(ctx context.Context, conn N.PacketConn, metadata adapter.InboundContext, onClose N.CloseHandlerFunc) error {
+	select {
+	case <-r.started:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.ctx.Done():
+		return r.ctx.Err()
+	}
 	//nolint:staticcheck
 	if metadata.InboundDetour != "" {
 		if metadata.LastInbound == metadata.InboundDetour {
@@ -284,12 +297,11 @@ func (r *Router) routePacketConnection(ctx context.Context, conn N.PacketConn, m
 		}
 	}
 	if selectedRule == nil || selectReturn {
-		defaultOutbound := r.outbound.Default()
-		if !common.Contains(defaultOutbound.Network(), N.NetworkUDP) {
+		if !common.Contains(r.defaultOutbound.Network(), N.NetworkUDP) {
 			N.ReleaseMultiPacketBuffer(packetBuffers)
-			return E.New("UDP is not supported by outbound: ", defaultOutbound.Tag())
+			return E.New("UDP is not supported by outbound: ", r.defaultOutbound.Tag())
 		}
-		selectedOutbound = defaultOutbound
+		selectedOutbound = r.defaultOutbound
 	}
 	for _, buffer := range packetBuffers {
 		conn = bufio.NewCachedPacketConn(conn, buffer.Buffer, buffer.Destination)
@@ -392,9 +404,20 @@ func (r *Router) PreMatch(metadata adapter.InboundContext, firstPacket []byte) a
 				}
 				return adapter.PreMatchResult{Action: adapter.PreMatchBypass}
 			}
-			return r.preMatchFlow(ctx, &metadata, packetDestination, currentRule, action.Outbound)
+			if metadata.Destination.IsDomain() || metadata.Destination != packetDestination {
+				return r.preMatchFlow(ctx, &metadata, packetDestination, currentRule, action.Outbound)
+			}
+			result := r.preMatchFlow(ctx, &metadata, packetDestination, currentRule, action.Outbound)
+			if result.Action != adapter.PreMatchFlow {
+				return adapter.PreMatchResult{Action: adapter.PreMatchBypass}
+			}
+			result.Action = adapter.PreMatchBypass
+			return result
 		case *R.RuleActionReject:
 			rejectErr := action.Error(r.ctx)
+			if rejectErr == nil && metadata.Network == N.NetworkICMP {
+				return continueResult
+			}
 			if errors.Is(rejectErr, R.ErrDrop) {
 				return adapter.PreMatchResult{Action: adapter.PreMatchDrop}
 			}
@@ -512,9 +535,9 @@ func (r *Router) preMatchFlow(ctx context.Context, metadata *adapter.InboundCont
 	} else if metadata.Destination != packetDestination {
 		result.Destination = metadata.Destination.AddrPort()
 	}
-	r.logger.InfoContext(ctx, "pre-match: forward ", metadata.Network, " connection from ", metadata.Source.AddrString(), " to ", metadata.Destination.AddrString(), " via outbound/", outbound.Type(), "[", outbound.Tag(), "]")
 	metadataCopy := *metadata
 	result.NewTracker = func() tun.FlowTracker {
+		r.logger.InfoContext(ctx, "pre-match: forward ", metadataCopy.Network, " connection from ", metadataCopy.Source.AddrString(), " to ", metadataCopy.Destination.AddrString(), " via outbound/", outbound.Type(), "[", outbound.Tag(), "]")
 		flowTrackers := make([]tun.FlowTracker, 0, len(r.trackers)+1)
 		flowTrackers = append(flowTrackers, newFlowLogger(ctx, r.logger, metadataCopy, outbound))
 		for _, tracker := range r.trackers {
@@ -623,6 +646,9 @@ match:
 				metadata.DestinationAddresses = nil
 			}
 			applyRouteOptionsOverride(metadata, routeOptions)
+			if routeOptions.OverrideGateway != nil && routeOptions.OverrideGateway.IsValid() {
+				metadata.Gateway = routeOptions.OverrideGateway
+			}
 			if routeOptions.NetworkStrategy != nil {
 				metadata.NetworkStrategy = routeOptions.NetworkStrategy
 			}

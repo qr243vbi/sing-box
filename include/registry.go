@@ -9,11 +9,13 @@ import (
 	"github.com/sagernet/sing-box/adapter/endpoint"
 	"github.com/sagernet/sing-box/adapter/inbound"
 	"github.com/sagernet/sing-box/adapter/outbound"
+	"github.com/sagernet/sing-box/adapter/provider"
 	"github.com/sagernet/sing-box/adapter/service"
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/dns"
 	"github.com/sagernet/sing-box/dns/transport"
 	"github.com/sagernet/sing-box/dns/transport/fakeip"
+	"github.com/sagernet/sing-box/dns/transport/fallback"
 	"github.com/sagernet/sing-box/dns/transport/hosts"
 	"github.com/sagernet/sing-box/dns/transport/local"
 	"github.com/sagernet/sing-box/dns/transport/mdns"
@@ -21,12 +23,20 @@ import (
 	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing-box/protocol/anytls"
 	"github.com/sagernet/sing-box/protocol/block"
+	"github.com/sagernet/sing-box/protocol/bond"
 	"github.com/sagernet/sing-box/protocol/bridge"
 	"github.com/sagernet/sing-box/protocol/direct"
+	"github.com/sagernet/sing-box/protocol/failover"
 	"github.com/sagernet/sing-box/protocol/group"
 	"github.com/sagernet/sing-box/protocol/http"
+	"github.com/sagernet/sing-box/protocol/limiter/bandwidth"
+	"github.com/sagernet/sing-box/protocol/limiter/connection"
+	"github.com/sagernet/sing-box/protocol/limiter/rate"
+	"github.com/sagernet/sing-box/protocol/limiter/traffic"
+	"github.com/sagernet/sing-box/protocol/mieru"
 	"github.com/sagernet/sing-box/protocol/mixed"
 	"github.com/sagernet/sing-box/protocol/naive"
+	"github.com/sagernet/sing-box/protocol/parser"
 	"github.com/sagernet/sing-box/protocol/redirect"
 	"github.com/sagernet/sing-box/protocol/shadowsocks"
 	"github.com/sagernet/sing-box/protocol/shadowtls"
@@ -38,7 +48,15 @@ import (
 	"github.com/sagernet/sing-box/protocol/tun"
 	"github.com/sagernet/sing-box/protocol/vless"
 	"github.com/sagernet/sing-box/protocol/vmess"
+	"github.com/sagernet/sing-box/protocol/vpn"
+	localProvider "github.com/sagernet/sing-box/provider/local"
+	remoteProvider "github.com/sagernet/sing-box/provider/remote"
+	"github.com/sagernet/sing-box/service/admin_panel"
 	"github.com/sagernet/sing-box/service/api"
+	"github.com/sagernet/sing-box/service/manager"
+	"github.com/sagernet/sing-box/service/manager_api"
+	"github.com/sagernet/sing-box/service/node"
+	"github.com/sagernet/sing-box/service/node_manager_api"
 	originca "github.com/sagernet/sing-box/service/origin_ca"
 	"github.com/sagernet/sing-box/service/resolved"
 	"github.com/sagernet/sing-box/service/ssmapi"
@@ -46,7 +64,7 @@ import (
 )
 
 func Context(ctx context.Context) context.Context {
-	return box.Context(ctx, InboundRegistry(), OutboundRegistry(), EndpointRegistry(), DNSTransportRegistry(), ServiceRegistry(), CertificateProviderRegistry())
+	return box.Context(ctx, InboundRegistry(), OutboundRegistry(), EndpointRegistry(), ProviderRegistry(), DNSTransportRegistry(), ServiceRegistry(), CertificateProviderRegistry())
 }
 
 func InboundRegistry() *inbound.Registry {
@@ -69,10 +87,19 @@ func InboundRegistry() *inbound.Registry {
 	shadowtls.RegisterInbound(registry)
 	vless.RegisterInbound(registry)
 	anytls.RegisterInbound(registry)
+	mieru.RegisterInbound(registry)
+	ssh.RegisterInbound(registry)
+
+	bond.RegisterInbound(registry)
+	failover.RegisterInbound(registry)
+	registerTrustTunnelInbound(registry)
 
 	registerQUICInbounds(registry)
 	registerCloudflaredInbound(registry)
 	registerStubForRemovedInbounds(registry)
+	registerMTProxyInbound(registry)
+	registerSudokuInbound(registry)
+	registerCallInbound(registry)
 
 	return registry
 }
@@ -85,6 +112,7 @@ func OutboundRegistry() *outbound.Registry {
 
 	block.RegisterOutbound(registry)
 
+	group.RegisterFallback(registry)
 	group.RegisterSelector(registry)
 	group.RegisterURLTest(registry)
 
@@ -99,10 +127,25 @@ func OutboundRegistry() *outbound.Registry {
 	ssh.RegisterOutbound(registry)
 	shadowtls.RegisterOutbound(registry)
 	vless.RegisterOutbound(registry)
+	mieru.RegisterOutbound(registry)
 	anytls.RegisterOutbound(registry)
+	registerMASQUEOutbound(registry)
+
+	bond.RegisterOutbound(registry)
+	failover.RegisterOutbound(registry)
+	registerTrustTunnelOutbound(registry)
+
+	bandwidth.RegisterOutbound(registry)
+	connection.RegisterOutbound(registry)
+	traffic.RegisterOutbound(registry)
+	rate.RegisterOutbound(registry)
+
+	parser.RegisterOutbound(registry)
 
 	registerQUICOutbounds(registry)
 	registerStubForRemovedOutbounds(registry)
+	registerSudokuOutbound(registry)
+	registerCallOutbound(registry)
 
 	return registry
 }
@@ -110,10 +153,23 @@ func OutboundRegistry() *outbound.Registry {
 func EndpointRegistry() *endpoint.Registry {
 	registry := endpoint.NewRegistry()
 
+	vpn.RegisterServerEndpoint(registry)
+	vpn.RegisterClientEndpoint(registry)
+
 	registerWireGuardEndpoint(registry)
 	registerOpenConnectEndpoint(registry)
 	registerOpenVPNEndpoints(registry)
 	registerTailscaleEndpoint(registry)
+
+	return registry
+}
+
+func ProviderRegistry() *provider.Registry {
+	registry := provider.NewRegistry()
+
+	localProvider.RegisterProviderInline(registry)
+	localProvider.RegisterProviderLocal(registry)
+	remoteProvider.RegisterProvider(registry)
 
 	return registry
 }
@@ -125,10 +181,12 @@ func DNSTransportRegistry() *dns.TransportRegistry {
 	transport.RegisterUDP(registry)
 	transport.RegisterTLS(registry)
 	transport.RegisterHTTPS(registry)
+	transport.RegisterSDNS(registry)
 	hosts.RegisterTransport(registry)
 	local.RegisterTransport(registry)
 	mdns.RegisterTransport(registry)
 	fakeip.RegisterTransport(registry)
+	fallback.RegisterTransport(registry)
 	resolved.RegisterTransport(registry)
 
 	registerQUICTransports(registry)
@@ -143,6 +201,11 @@ func DNSTransportRegistry() *dns.TransportRegistry {
 func ServiceRegistry() *service.Registry {
 	registry := service.NewRegistry()
 
+	admin_panel.RegisterService(registry)
+	manager.RegisterService(registry)
+	manager_api.RegisterService(registry)
+	node.RegisterService(registry)
+	node_manager_api.RegisterService(registry)
 	api.RegisterService(registry)
 	resolved.RegisterService(registry)
 	ssmapi.RegisterService(registry)
@@ -152,6 +215,7 @@ func ServiceRegistry() *service.Registry {
 	registerCCMService(registry)
 	registerOCMService(registry)
 	registerOOMKillerService(registry)
+	registerProfilerService(registry)
 	registerUSBIPServices(registry)
 
 	return registry

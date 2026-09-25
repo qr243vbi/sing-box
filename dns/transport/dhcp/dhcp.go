@@ -109,7 +109,11 @@ func (t *Transport) Start(stage adapter.StartStage) error {
 		return nil
 	}
 	if t.interfaceName == "" {
-		t.interfaceCallback = t.networkManager.InterfaceMonitor().RegisterCallback(t.interfaceUpdated)
+		interfaceMonitor := t.networkManager.InterfaceMonitor()
+		if interfaceMonitor == nil {
+			return E.New("missing monitor for auto DHCP, set route.auto_detect_interface")
+		}
+		t.interfaceCallback = interfaceMonitor.RegisterCallback(t.interfaceUpdated)
 	}
 	go func() {
 		err := t.fetch()
@@ -308,7 +312,8 @@ func (t *Transport) updateServersLocked(ctx context.Context) error {
 		t.storeFailureLocked(err)
 		return E.Cause(err, "prepare interface")
 	}
-	t.logger.Info("dhcp: query DNS servers on ", iface.Name)
+
+	t.logger.Notice("dhcp: query DNS servers on ", iface.Name)
 	fetchCtx, cancel := context.WithTimeout(ctx, C.DHCPTimeout)
 	err = t.fetchServers0(fetchCtx, iface)
 	cancel()
@@ -475,7 +480,7 @@ func (t *Transport) recreateServersLocked(iface *control.Interface, dhcpPacket *
 	})
 	serversUnchanged := previousState != nil && slices.Equal(previousState.servers, newState.servers)
 	if len(newState.servers) > 0 && !serversUnchanged {
-		t.logger.Info("dhcp: updated DNS servers from ", iface.Name, ": [", strings.Join(common.Map(newState.servers, M.Socksaddr.String), ","), "], search: [", strings.Join(newState.search, ","), "]")
+		t.logger.Notice("dhcp: updated DNS servers from ", iface.Name, ": [", strings.Join(common.Map(newState.servers, M.Socksaddr.String), ","), "], search: [", strings.Join(newState.search, ","), "]")
 	}
 	if serversUnchanged && previousState.serverTransports != nil {
 		newState.serverTransports = previousState.serverTransports
