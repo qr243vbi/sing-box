@@ -366,7 +366,8 @@ but keeps the copy and its sidecar, whose `plist_path` is cleared — the copy-o
 unbound it changes nothing, prints the same line and exits 0.
 
 **Self-check at start.** A core started as root (`lxd` or `run`) checks its own binary
-against the invariant. The launchd job — parent pid 1 and
+against the invariant — on macOS and Windows only, where the core installs the service
+itself; on Linux and elsewhere there is no self-check and nothing is logged. The launchd job — parent pid 1 and
 `XPC_SERVICE_NAME=com.leadaxe.sing-box-lxd` — refuses to start and says why in
 `lxd.log`:
 
@@ -866,11 +867,17 @@ version, its release asset (`Platform:` in `sing-box version`, e.g.
    release including rc, through the GitHub API) gives the asset name, the
    version and the sum in one request. Same version → `already up to date`,
    exit 0. An installed version newer than the available one is refused —
-   no downgrades.
+   no downgrades. A UPX-packed binary (`UPX!` in its first 4 KiB) takes the
+   packed copy, `sing-box-<ver>-<platform>.upx.tar.gz`, so a router whose
+   overlay fits only the packed core keeps it; a release without that copy
+   falls back to the plain archive and says so.
 2. Free space beside the binary ≥ its size + 10 %.
 3. The archive streams straight into `<binary>.new` on the same filesystem:
    sha256 over the compressed bytes, gunzip, tar, only the `sing-box` entry
-   is written — nothing lands in `/tmp` (RAM on a router). Progress goes to
+   is written — nothing lands in `/tmp` (RAM on a router). Before the write
+   the free space is checked again against the size in the entry's tar header
+   (+ 10 %): the plain binary replacing a packed one is 4–5× larger, and the
+   update stops here, after the first kilobytes of the archive. Progress goes to
    the output at most once a second (`downloading <asset>: 3.2 / 14.1 MiB
    (23%)`; bytes only when the server gave no length). A sum mismatch
    deletes `.new`.
@@ -1045,7 +1052,7 @@ Error map:
 | `POST /admin/start` · `POST /admin/stop` | core lifecycle apart from the config (stop is remembered) |
 | `GET /admin/config` | the active config |
 | `GET /admin/status` | `idle\|started\|fatal`, active/last-good sha, `last_error`, `interrupted_apply` |
-| `GET /admin/info` | identity card: version, state_dir, listen, tls, fingerprint, pid, uptime, log_path, `executable` and `executable_sha256` (the running binary — compare cores by hash, not by path; the hash is computed once at start and reads `""` for the first moments), and the platform card (SPEC 127): `goos`, `goarch`, `platform` (the release asset for this binary's platform, e.g. `linux-armv7`, `linux-mipsle-softfloat` — what to download for this machine), `init_system` (what runs the host: `procd` / `systemd` / `openrc` / `launchd` / `scm`, `""` when none is recognised) and `service` (`true` when this process runs under it as a service) |
+| `GET /admin/info` | identity card: version, state_dir, listen, tls, fingerprint, pid, uptime, log_path, `executable` and `executable_sha256` (the running binary — compare cores by hash, not by path; the hash is computed once at start and reads `""` for the first moments), and the platform card (SPEC 127): `goos`, `goarch`, `platform` (the release asset for this binary's platform, e.g. `linux-armv7`, `linux-mipsle-softfloat` — what to download for this machine), `init_system` (what runs the host: `procd` / `systemd` / `openrc` / `launchd` / `scm`, `""` when none is recognised), `service` (`true` when this process runs under it as a service) and `packed` (`true` when the running binary is a UPX-packed copy — download the `<platform>.upx.tar.gz` asset for it, as `lxd update` does) |
 | `POST /admin/enroll` | client registration with a one-time code |
 | `GET /admin/resources` · `PUT`/`GET`/`DELETE /admin/resources/{name}` | the files a config REFERS to (`.srs`, geo bases): list with sha256, upload, fetch, remove; 409 while the active or last-good config references the name |
 | `GET /admin/memory` | process memory: heap/stack/sys, goroutines, GC, and **two** RSS numbers — `rss_current_bytes` and `rss_peak_bytes` (raw bytes; the peak never decreases, so it is reported apart from the current size) |
