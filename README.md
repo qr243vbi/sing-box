@@ -176,7 +176,7 @@ Key material comes from the WARP device registration done by the client. Not to 
 { "type": "vless", "uuid": "…", "encryption": "mlkem768x25519plus.native.0rtt.<ML-KEM-768 key>" }   // absent or "none" = off
 ```
 
-Client half only; `decryption` is server-side and deliberately not ported. Reference — [lx-config.md §6](docs-lx/lx-config.md#6-vless-encryption--post-quantum-layer-spec-032) ([RU](docs-lx/lx-config.ru.md#6-vless-encryption--пост-квантовый-слой-spec-032)).
+Client side only; `decryption` is server-side and deliberately not ported. Reference — [lx-config.md §6](docs-lx/lx-config.md#6-vless-encryption--post-quantum-layer-spec-032) ([RU](docs-lx/lx-config.ru.md#6-vless-encryption--пост-квантовый-слой-spec-032)).
 
 ### DNS server group
 
