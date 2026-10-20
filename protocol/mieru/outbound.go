@@ -1,4 +1,3 @@
-// karing https://github.com/enfein/mbox
 package mieru
 
 import (
@@ -38,25 +37,21 @@ func RegisterOutbound(registry *outbound.Registry) {
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.MieruOutboundOptions) (adapter.Outbound, error) {
-	empty := &Outbound{ //karing
-		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeMieru, tag, []string{}, options.DialerOptions),
-		logger:  logger,
-	}
 	outboundDialer, err := dialer.New(ctx, options.DialerOptions, M.IsDomainName(options.Server))
 	if err != nil {
-		return empty, err //karing
+		return nil, err
 	}
 
 	config, err := buildMieruClientConfig(options, mieruDialer{dialer: outboundDialer})
 	if err != nil {
-		return empty, fmt.Errorf("failed to build mieru client config: %w", err) //karing
+		return nil, fmt.Errorf("failed to build mieru client config: %w", err)
 	}
 	c := mieruclient.NewClient()
 	if err := c.Store(config); err != nil {
-		return empty, fmt.Errorf("failed to store mieru client config: %w", err) //karing
+		return nil, fmt.Errorf("failed to store mieru client config: %w", err)
 	}
 	if err := c.Start(); err != nil {
-		return empty, fmt.Errorf("failed to start mieru client: %w", err) //karing
+		return nil, fmt.Errorf("failed to start mieru client: %w", err)
 	}
 	logger.InfoContext(ctx, "mieru client is started")
 
@@ -69,43 +64,37 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 }
 
 func (o *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
-	if o.GetParseErr() != nil { //karing
-		return nil, o.GetParseErr()
-	}
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = o.Tag()
 	metadata.Destination = destination
 	switch N.NetworkName(network) {
-	case N.NetworkTCP:
-		o.logger.InfoContext(ctx, "outbound connection to ", destination)
-		d, err := socksAddrToNetAddrSpec(destination, "tcp")
-		if err != nil {
-			return nil, E.Cause(err, "failed to convert destination address")
-		}
-		return o.client.DialContext(ctx, d)
-	case N.NetworkUDP:
-		o.logger.InfoContext(ctx, "outbound UoT packet connection to ", destination)
-		d, err := socksAddrToNetAddrSpec(destination, "udp")
-		if err != nil {
-			return nil, E.Cause(err, "failed to convert destination address")
-		}
-		streamConn, err := o.client.DialContext(ctx, d)
-		if err != nil {
-			return nil, err
-		}
-		return &streamer{
-			PacketConn: mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(streamConn)),
-			Remote:     destination,
-		}, nil
-	default:
-		return nil, os.ErrInvalid
+		case N.NetworkTCP:
+			o.logger.InfoContext(ctx, "outbound connection to ", destination)
+			d, err := socksAddrToNetAddrSpec(destination, "tcp")
+			if err != nil {
+				return nil, E.Cause(err, "failed to convert destination address")
+			}
+			return o.client.DialContext(ctx, d)
+		case N.NetworkUDP:
+			o.logger.InfoContext(ctx, "outbound UoT packet connection to ", destination)
+			d, err := socksAddrToNetAddrSpec(destination, "udp")
+			if err != nil {
+				return nil, E.Cause(err, "failed to convert destination address")
+			}
+			streamConn, err := o.client.DialContext(ctx, d)
+			if err != nil {
+				return nil, err
+			}
+			return &streamer{
+				PacketConn: mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(streamConn)),
+				Remote:     destination,
+			}, nil
+		default:
+			return nil, os.ErrInvalid
 	}
 }
 
 func (o *Outbound) ListenPacket(ctx context.Context, destination M.Socksaddr) (net.PacketConn, error) {
-	if o.GetParseErr() != nil { //karing
-		return nil, o.GetParseErr()
-	}
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = o.Tag()
 	metadata.Destination = destination
@@ -121,19 +110,8 @@ func (o *Outbound) ListenPacket(ctx context.Context, destination M.Socksaddr) (n
 	return mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(streamConn)), nil
 }
 
-func (o *Outbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
-	if o.GetParseErr() != nil { //karing
-		return nil
-	}
-	if stage != adapter.StartStateInitialize {
-		return nil
-	}
-	scope.Add(func() error {
-		common.Close(o.client)
-		return nil
-	})
-
-	return nil
+func (o *Outbound) Close() error {
+	return common.Close(o.client)
 }
 
 // mieruDialer is an adapter to mieru dialer interface.
@@ -194,22 +172,22 @@ func buildMieruClientConfig(options option.MieruOutboundOptions, dialer mieruDia
 
 	var transportProtocol *mierupb.TransportProtocol
 	switch options.Transport {
-	case "TCP":
-		transportProtocol = mierupb.TransportProtocol_TCP.Enum()
-	case "UDP":
-		transportProtocol = mierupb.TransportProtocol_UDP.Enum()
+		case "TCP":
+			transportProtocol = mierupb.TransportProtocol_TCP.Enum()
+		case "UDP":
+			transportProtocol = mierupb.TransportProtocol_UDP.Enum()
 	}
 	server := &mierupb.ServerEndpoint{}
 	if options.ServerPort != 0 {
 		server.PortBindings = append(server.PortBindings, &mierupb.PortBinding{
 			Port:     proto.Int32(int32(options.ServerPort)),
-			Protocol: transportProtocol,
+					     Protocol: transportProtocol,
 		})
 	}
 	for _, pr := range options.ServerPortRanges {
 		server.PortBindings = append(server.PortBindings, &mierupb.PortBinding{
 			PortRange: proto.String(pr),
-			Protocol:  transportProtocol,
+					     Protocol:  transportProtocol,
 		})
 	}
 	if M.IsDomainName(options.Server) {
@@ -236,12 +214,6 @@ func buildMieruClientConfig(options option.MieruOutboundOptions, dialer mieruDia
 		config.Profile.Multiplexing = &mierupb.MultiplexingConfig{
 			Level: mierupb.MultiplexingLevel(multiplexing).Enum(),
 		}
-	}
-	if options.MTU != 0 { // https://github.com/shtorm-7/sing-box-extended
-		config.Profile.Mtu = proto.Int32(int32(options.MTU))
-	}
-	if handshakeMode, ok := mierupb.HandshakeMode_value[options.HandshakeMode]; ok { // https://github.com/shtorm-7/sing-box-extended
-		config.Profile.HandshakeMode = mierupb.HandshakeMode(handshakeMode).Enum()
 	}
 	if options.TrafficPattern != "" {
 		trafficPattern, _ := mierutp.Decode(options.TrafficPattern)
@@ -284,11 +256,6 @@ func validateMieruOptions(options option.MieruOutboundOptions) error {
 	if options.Multiplexing != "" {
 		if _, ok := mierupb.MultiplexingLevel_value[options.Multiplexing]; !ok {
 			return fmt.Errorf("invalid multiplexing level: %s", options.Multiplexing)
-		}
-	}
-	if options.HandshakeMode != "" { // https://github.com/shtorm-7/sing-box-extended
-		if _, ok := mierupb.HandshakeMode_value[options.HandshakeMode]; !ok {
-			return fmt.Errorf("invalid handshake mode: %s", options.HandshakeMode)
 		}
 	}
 	if options.TrafficPattern != "" {
