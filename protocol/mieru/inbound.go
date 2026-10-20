@@ -1,4 +1,4 @@
-// karing https://github.com/enfein/mbox
+
 package mieru
 
 import (
@@ -76,7 +76,7 @@ func NewInbound(ctx context.Context, router adapter.Router, logger log.ContextLo
 	return inboundInstance, nil
 }
 
-func (h *Inbound) Start(stage adapter.StartStage) error {
+func (h *Inbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 	if stage != adapter.StartStateStart {
 		return nil
 	}
@@ -87,6 +87,7 @@ func (h *Inbound) Start(stage adapter.StartStage) error {
 	if err := h.server.Start(); err != nil {
 		return fmt.Errorf("failed to start mieru server: %w", err)
 	}
+	scope.Add(h.Close)
 
 	h.logger.Info("mieru server is started")
 	go h.acceptLoop()
@@ -168,21 +169,21 @@ func (h *Inbound) handleConnection(conn net.Conn, request *mierumodel.Request) {
 
 	// Handle request.
 	switch request.Command {
-	case mieruconstant.Socks5ConnectCmd:
-		h.logger.InfoContext(ctx, "inbound TCP connection from ", metadata.Source, " to ", metadata.Destination)
-		if metadata.User != "" {
-			h.logger.InfoContext(ctx, "[", metadata.User, "] inbound TCP connection")
-		}
-		h.router.RouteConnectionEx(ctx, conn, metadata, nil)
-	case mieruconstant.Socks5UDPAssociateCmd:
-		h.logger.InfoContext(ctx, "inbound UDP connection from ", metadata.Source, " to ", metadata.Destination)
-		if metadata.User != "" {
-			h.logger.InfoContext(ctx, "[", metadata.User, "] inbound UDP connection")
-		}
-		h.handleUDP(ctx, conn, metadata)
-	default:
-		conn.Close()
-		h.logger.WarnContext(ctx, "unsupported mieru command: ", request.Command)
+		case mieruconstant.Socks5ConnectCmd:
+			h.logger.InfoContext(ctx, "inbound TCP connection from ", metadata.Source, " to ", metadata.Destination)
+			if metadata.User != "" {
+				h.logger.InfoContext(ctx, "[", metadata.User, "] inbound TCP connection")
+			}
+			h.router.RouteConnectionEx(ctx, conn, metadata, nil)
+		case mieruconstant.Socks5UDPAssociateCmd:
+			h.logger.InfoContext(ctx, "inbound UDP connection from ", metadata.Source, " to ", metadata.Destination)
+			if metadata.User != "" {
+				h.logger.InfoContext(ctx, "[", metadata.User, "] inbound UDP connection")
+			}
+			h.handleUDP(ctx, conn, metadata)
+		default:
+			conn.Close()
+			h.logger.WarnContext(ctx, "unsupported mieru command: ", request.Command)
 	}
 }
 
@@ -270,14 +271,18 @@ func buildMieruServerConfig(_ context.Context, options option.MieruInboundOption
 
 	var transportProtocol *mierupb.TransportProtocol
 	switch options.Transport {
-	case "TCP":
-		transportProtocol = mierupb.TransportProtocol_TCP.Enum()
-	case "UDP":
-		transportProtocol = mierupb.TransportProtocol_UDP.Enum()
+		case "TCP":
+			transportProtocol = mierupb.TransportProtocol_TCP.Enum()
+		case "UDP":
+			transportProtocol = mierupb.TransportProtocol_UDP.Enum()
 	}
 
 	if options.ListenOptions.ListenPort == 0 {
 		return nil, nil, E.New("listen_port must be set")
+	}
+	var listenIPAddress *string
+	if options.ListenOptions.Listen != nil {
+		listenIPAddress = proto.String(netip.Addr(*options.ListenOptions.Listen).String())
 	}
 	portBindings := []*mierupb.PortBinding{
 		{
@@ -291,7 +296,7 @@ func buildMieruServerConfig(_ context.Context, options option.MieruInboundOption
 	for _, user := range options.Users {
 		users = append(users, &mierupb.User{
 			Name:     proto.String(user.Name),
-			Password: proto.String(user.Password),
+			       Password: proto.String(user.Password),
 		})
 		userNames = append(userNames, user.Name)
 	}
@@ -305,6 +310,7 @@ func buildMieruServerConfig(_ context.Context, options option.MieruInboundOption
 	}
 	return &mieruserver.ServerConfig{
 		Config: &mierupb.ServerConfig{
+			ListenIPAddress:  listenIPAddress,
 			PortBindings:     portBindings,
 			Users:            users,
 			TrafficPattern:   trafficPattern,
