@@ -168,7 +168,7 @@
 | [010](../../TASKS/010-WG_ENDPOINT_GRO_SPLIT_BRAIN/SPEC.md) | WG-endpoint без `detour` режет download на Android (0.44 Mbps) | submodule `conn/` | ✅ **выполнено** — upstream `24ea133` | **СНЯТ** |
 | [028](../../TASKS/028-NESTED_TUNNEL_UDP_FRAGMENT/SPEC.md) | Вложенные туннели через `detour` не ходят | `protocol/masque/outbound.go`, endpoint | Апстрим сам выставит `UDPFragmentDefault` для туннельных outbound'ов | держим; на Linux/Android действует с синка 109 (до него флаг не снимал DF) |
 | [029](../../TASKS/029-ENDPOINT_DETOUR_START_ORDER/SPEC.md) | Endpoint с `detour` мёртв, если провайдер объявлен позже | `protocol/wireguard/endpoint.go` | ✅ причина устранена — upstream `f39ab0e9` (lx.15). Остаток: апстрим сам введёт ранний резолв detour с fail-fast | **частично снят** — держим только fail-fast |
-| [030](../../TASKS/030-FAST_BOX_SHUTDOWN/SPEC.md) | `box.Close()` виснет 10 с+ при ~30 узлах | `box.go`, `route/reachability_common_lx.go` | Апстрим введёт свой quiesce-этап при остановке | держим |
+| [030](../../TASKS/030-FAST_BOX_SHUTDOWN/SPEC.md) | `box.Close()` виснет 10 с+ при ~30 узлах; зависший stop (issue #50) не оставляет улик | `box.go`, `route/reachability_common_lx.go`, `adapter/shutdown_quiesce_lx.go`, `protocol/wireguard/endpoint_quiesce_lx.go`, `transport/wireguard/endpoint_quiesce_lx.go`, `adapter/endpoint/manager_close_lx.go`; сторож закрытия — `common/lxclosewatch/`, `box_close_watchdog_lx.go` | Апстрим введёт свой quiesce-этап при остановке и свой дамп горутин при зависшем `Close` | держим; пре-пасс восстановлен 2026-10-23 явным обходом endpoint'ов (с lx.37 broadcast паузы его не делал — апстрим `6364d9a5f`); сторож закрытия добавлен 2026-10-23, в поле ещё не срабатывал |
 | [012](../../TASKS/012-TCP_DOWNLINK_STALL_ZOMBIE_CONNS/SPEC.md) | ↑517 ↓0, приложения «висят» | — (кода нет) | — | закрыт: не воспроизводится |
 | [039](../../TASKS/039-REPORT_ARCHIVE_ROTATION/SPEC.md) | Архивы отчётов растут без предела — 427 МБ / 575 папок за 19 дней | `experimental/libbox/report.go` + вызов в OOM- и crash-путях | Апстрим введёт свою ротацию архивов отчётов | держим |
 | [040](../../TASKS/040-SINGTUN_ACCEPTLOOP_SELFHEAL/SPEC.md) | acceptLoop system-стека молча умирает от чужого close fd → весь новый TCP получает мгновенный RST до рестарта VPN (LxBox §047: «браузер мёртв, QUIC жив») | форк `submodules/sing-tun` (`stack_system.go`: warn с errno + relisten + счётчик) | Апстрим сделает acceptLoop устойчивым (или заменит механику system-стека) | держим |
@@ -198,6 +198,7 @@
 | [111](../../TASKS/111-TAILSCALE_CONTROL_NOISE_443/SPEC.md) | Tailscale-узел за DPI после каждого старта ~15 мин без связи с координатором (консоль: offline; exit node живёт на старой карте через DERP): канал на порт 80 замерзает после `Upgrade`, tailscale шлёт запросы в тот же мёртвый сокет и уходит на 443 только когда ОС закроет сокет | `protocol/tailscale/control_https_lx.go` (новый файл): `TS_FORCE_NOISE_443=true`, если не задан явно | tailscale рвёт соединение по таймауту долгого опроса, или переходит на 443 сам, или sing-box даёт опцию транспорта координатора (проверять при бампе `sagernet/tailscale`) | держим — юнит зелёный; полевая проверка на роутере после выката |
 | [113](../../TASKS/113-TAILSCALE_ALWAYS_DERP_REBIND_LEAK/SPEC.md) | `TS_DEBUG_ALWAYS_USE_DERP=true` + любой `Rebind()` magicsock: прежняя заглушка-сокет не закрывается, приёмная горутина wireguard-go виснет, `device.Close()` ждёт её вечно — lxd Stop/Apply не возвращаются | нет патча (понадобился бы форк `sagernet/tailscale` или lx-опция `force_derp` в endpoint'е) | апстрим tailscale закрывает прежний pconn в ветке `debugAlwaysDERP()` `bindSocket` (проверять при бампе `sagernet/tailscale`) | **не планируется** — переменную на стендах со штатным Stop/Apply не использовать |
 | [130](../../TASKS/130-WIN7_REGISTRY_NOTIFY_THREAD_AGNOSTIC/SPEC.md) | Windows 7: ядро с lx.14 не стартует — `watch registry key …Tcpip\Parameters\Interfaces: The parameter is incorrect` ([issue #38](https://github.com/Leadaxe/sing-box-lx/issues/38)): апстримный DNS-наблюдатель sing-tun `bca4bf0` регистрирует `RegNotifyChangeKeyValue` с `REG_NOTIFY_THREAD_AGNOSTIC` (Win8+) | форк `submodules/sing-tun` (`monitor_windows.go`: фоллбэк без флага + регистрация на прибитом потоке, `// lx: SPEC 130`) | Апстрим sing-tun перестанет требовать флаг либо сборки sing-box откажутся от Win7 | держим; Win7-проверка за репортёром |
+| [136](../../TASKS/136-REFERENCE_MANAGER_START_MUX_LOCK/SPEC.md) | `Box.Start` стоит 10–16 с на стадии `Started` ([issue #49](https://github.com/Leadaxe/sing-box-lx/issues/49)): апстримный `ReferenceManager.Start` синхронно вызывает `update()` → `SetKeepIdleConnections(false)` неиспользуемому mux-outbound'у → sing-mux `Client.CloseIdleConnections` → `c.access.Lock()`, а замок держит URL-тест с `PostStart` — `Client.offer` не отпускает `access` на весь `offerNew()` (сетевой dial); старт ядра ждёт чужой handshake | `route/reference.go` (`// lx: SPEC 136`: первый `update()` в горутине перед `loop()`, `update` остаётся однопоточным) | Апстрим перестанет вызывать `update()` на стартовом пути **или** sing-mux перестанет держать `access` поверх `offerNew()` | держим; юнит red/green + `-race`; на устройстве репортёра не прогонялось |
 
 ## Разбор записей
 
@@ -241,7 +242,15 @@ linux-only, из-за чего Android получал склеенные пак�
 ещё слал wake-пинги; каждый `Endpoint.Close()` блокировался на `resumeMu`,
 дожидаясь полного device-rebuild с хендшейком (~0.5–5 с), и это суммировалось
 последовательно. Фикс из четырёх шагов; drain намеренно **не трогаем** —
-иначе use-after-free в gVisor netstack.
+иначе use-after-free в gVisor netstack. Пре-пасс (закрытие сокетов вперёд)
+с 2026-10-23 — явный обход endpoint'ов через `adapter.ShutdownQuiescer`, а не
+broadcast `DevicePause()`: апстрим снял реакцию WG на паузу устройства
+(CONSTRAINT в [UPSTREAM_SYNC](../005-UPSTREAM_SYNC/FEATURE.md)). Поверх прохода
+закрытия с 2026-10-23 стоит сторож (issue #50): если endpoint'ы или весь
+`Box.Close` не вернулись за 20 с, ядро один раз пишет в лог на `Warn` полный
+дамп горутин кусками ≤ 3 КиБ (под logcat) и теги endpoint'ов, ещё не
+вернувших `Close`, — и ждёт дальше. Закрытие не прерывается; это сбор
+доказательства, не фикс.
 
 **012 — зонтик, а не баг.** Симптом наблюдался на разных узлах, включая WG,
 то есть за ним стояло несколько причин. WG-долю закрыл 010. Для не-WG
